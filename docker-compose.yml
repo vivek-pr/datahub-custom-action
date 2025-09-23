@@ -86,6 +86,8 @@ services:
       MYSQL_DB: "datahub"
       MYSQL_USER: "datahub"
       MYSQL_PASSWORD: "datahubpass"
+      MYSQL_HEALTH_USER: "root"
+      MYSQL_HEALTH_PASSWORD: "rootpass"
     entrypoint: ["/bin/sh","-lc","/wait-mysql.sh \"$MYSQL_HOST\" \"$MYSQL_PORT\" && /scripts/run-setup.sh"]
     volumes:
       - ./scripts/wait-mysql.sh:/wait-mysql.sh:ro
@@ -143,6 +145,11 @@ services:
       MYSQL_PORT: 3306
       MYSQL_USERNAME: datahub
       MYSQL_PASSWORD: "datahubpass"
+      WAIT_FOR: >
+        http://elasticsearch:9200
+        http://schema-registry:8081
+        tcp://broker:29092
+        tcp://mysql:3306
     ports:
       - "8080:8080"
     healthcheck:

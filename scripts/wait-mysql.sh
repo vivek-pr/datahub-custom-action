@@ -3,18 +3,12 @@ set -e
 
 HOST="${1:-host}"
 PORT="${2:-port}"
-USER="${MYSQL_USER:-root}"
-PASS="${MYSQL_PASSWORD:-}"
+USER="${MYSQL_HEALTH_USER:-${MYSQL_USER:-root}}"
+PASS="${MYSQL_HEALTH_PASSWORD:-${MYSQL_PASSWORD:-}}"
 
 for i in $(seq 1 60); do
-  if [ -n "$PASS" ]; then
-    if mysqladmin ping -h "$HOST" -P "$PORT" -u"$USER" --password="$PASS" >/dev/null 2>&1; then
-      exit 0
-    fi
-  else
-    if mysqladmin ping -h "$HOST" -P "$PORT" -u"$USER" >/dev/null 2>&1; then
-      exit 0
-    fi
+  if mysqladmin ping --protocol=tcp -h "$HOST" -P "$PORT" -u"$USER" ${PASS:+--password="$PASS"} >/dev/null 2>&1; then
+    exit 0
   fi
   sleep 1
 done
