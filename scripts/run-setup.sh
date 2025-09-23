@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-set -euo pipefail
+set -eu
 HOST="${MYSQL_HOST}"
 PORT="${MYSQL_PORT}"
 USER="${MYSQL_USER}"
