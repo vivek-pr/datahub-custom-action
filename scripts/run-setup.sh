@@ -6,7 +6,6 @@ USER="${MYSQL_USER}"
 PASS="${MYSQL_PASSWORD}"
 
 mysql --protocol=tcp -h "$HOST" -P "$PORT" -u "$USER" --password="$PASS" <<'SQL'
-CREATE DATABASE IF NOT EXISTS `datahub` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 USE `datahub`;
 
 CREATE TABLE IF NOT EXISTS metadata_aspect_v2 (

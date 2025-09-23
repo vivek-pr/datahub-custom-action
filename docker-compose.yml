@@ -84,8 +84,8 @@ services:
       MYSQL_HOST: "mysql"
       MYSQL_PORT: "3306"
       MYSQL_DB: "datahub"
-      MYSQL_USER: "root"
-      MYSQL_PASSWORD: "rootpass"
+      MYSQL_USER: "datahub"
+      MYSQL_PASSWORD: "datahubpass"
     entrypoint: ["/bin/sh","-lc","/wait-mysql.sh \"$MYSQL_HOST\" \"$MYSQL_PORT\" && /scripts/run-setup.sh"]
     volumes:
       - ./scripts/wait-mysql.sh:/wait-mysql.sh:ro
