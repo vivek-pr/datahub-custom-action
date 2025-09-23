@@ -63,6 +63,8 @@ class RunManager:
                     )
                     results.append(result)
                 elif platform == "databricks":
+                    if not getattr(self.dbx, "enabled", False):
+                        raise RuntimeError("Databricks tokenizer not configured")
                     database, schema, table = _split_dataset_key(dataset_key)
                     result = self.dbx.tokenize(
                         catalog=database,
