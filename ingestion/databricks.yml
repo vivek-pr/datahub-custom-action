@@ -1,0 +1,24 @@
+# Optional Databricks ingestion recipe. Update the host and catalog details before running.
+source:
+  type: databricks
+  config:
+    host_port: ${DBX_HOST}
+    http_path: ${DBX_HTTP_PATH}
+    personal_access_token: ${DBX_TOKEN}
+    catalog: ${DBX_CATALOG}
+    database_pattern:
+      allow:
+        - default
+    table_pattern:
+      allow:
+        - customers
+transformers:
+  - type: add_tag
+    config:
+      tag_urns:
+        - "urn:li:tag:tokenize/run"
+sink:
+  type: datahub-rest
+  config:
+    server: ${DATAHUB_GMS}
+    token: ${DATAHUB_TOKEN}
