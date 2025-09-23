@@ -11,3 +11,4 @@ databricks-sql-connector==3.0.2
 pyyaml==6.0.1
 
 acryl-datahub==1.2.0.10rc4
+acryl-datahub[postgres]==1.2.0.10rc4
