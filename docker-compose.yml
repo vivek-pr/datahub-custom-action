@@ -1,0 +1,222 @@
+version: "3.9"
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.3
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  broker:
+    image: confluentinc/cp-kafka:7.5.3
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.3
+    depends_on:
+      broker:
+        condition: service_healthy
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: broker:29092
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/subjects"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: datahub
+      MYSQL_ROOT_PASSWORD: datahub
+      MYSQL_USER: datahub
+      MYSQL_PASSWORD: datahub
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mysql-setup:
+    image: acryldata/datahub-mysql-setup:v1.2.0.1
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: datahub
+      MYSQL_PASSWORD: datahub
+      MYSQL_DB: datahub
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  elasticsearch-setup:
+    image: acryldata/datahub-elasticsearch-setup:v1.2.0.1
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+
+  kafka-setup:
+    image: acryldata/datahub-kafka-setup:v1.2.0.1
+    depends_on:
+      broker:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: broker:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+
+  datahub-gms:
+    image: acryldata/datahub-gms:v1.2.0.1
+    depends_on:
+      mysql-setup:
+        condition: service_completed_successfully
+      kafka-setup:
+        condition: service_completed_successfully
+      elasticsearch-setup:
+        condition: service_completed_successfully
+    environment:
+      DATAHUB_GMS_PORT: 8080
+      KAFKA_BOOTSTRAP_SERVER: broker:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: datahub
+      MYSQL_PASSWORD: datahub
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  datahub-frontend:
+    image: acryldata/datahub-frontend-react:v1.2.0.1
+    depends_on:
+      datahub-gms:
+        condition: service_healthy
+    environment:
+      DATAHUB_GMS_HOST: datahub-gms
+      DATAHUB_GMS_PORT: 8080
+      DATAHUB_GMS_PROTOCOL: http
+      DATAHUB_APP_VERSION: poc
+    ports:
+      - "9002:9002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9002"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  datahub-mce-consumer:
+    image: acryldata/datahub-mce-consumer:v1.2.0.1
+    depends_on:
+      datahub-gms:
+        condition: service_healthy
+    environment:
+      DATAHUB_GMS_HOST: datahub-gms
+      DATAHUB_GMS_PORT: 8080
+      DATAHUB_GMS_PROTOCOL: http
+      KAFKA_BOOTSTRAP_SERVER: broker:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+
+  datahub-mae-consumer:
+    image: acryldata/datahub-mae-consumer:v1.2.0.1
+    depends_on:
+      datahub-gms:
+        condition: service_healthy
+    environment:
+      DATAHUB_GMS_HOST: datahub-gms
+      DATAHUB_GMS_PORT: 8080
+      DATAHUB_GMS_PROTOCOL: http
+      KAFKA_BOOTSTRAP_SERVER: broker:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: tokenize
+      POSTGRES_USER: tokenize
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "tokenize", "-U", "tokenize"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  datahub-actions:
+    build:
+      context: .
+      dockerfile: docker/action.Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATAHUB_GMS: http://datahub-gms:8080
+      KAFKA_BOOTSTRAP_SERVER: broker:29092
+      KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      PG_CONN_STR: postgresql://tokenize:pass@postgres:5432/tokenize
+    depends_on:
+      datahub-gms:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10

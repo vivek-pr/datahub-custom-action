@@ -1,0 +1,25 @@
+source:
+  type: postgres
+  config:
+    host_port: postgres:5432
+    database: tokenize
+    username: tokenize
+    password: pass
+    schema_pattern:
+      allow:
+        - public
+    table_pattern:
+      allow:
+        - customers
+    profiling:
+      enabled: false
+transformers:
+  - type: add_tag
+    config:
+      tag_urns:
+        - "urn:li:tag:tokenize/run"
+sink:
+  type: datahub-rest
+  config:
+    server: ${DATAHUB_GMS}
+    token: ${DATAHUB_TOKEN}
