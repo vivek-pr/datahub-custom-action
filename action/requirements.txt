@@ -4,10 +4,10 @@ requests==2.31.0
 confluent-kafka==2.3.0
 psycopg2-binary==2.9.9
 python-dateutil==2.9.0
-pydantic==1.10.15
+
 pydantic-settings==2.2.1
 tenacity==8.2.3
 databricks-sql-connector==3.0.2
 pyyaml==6.0.1
 
-acryl-datahub==0.12.1.7
+acryl-datahub==1.2.0.10rc4

@@ -32,15 +32,15 @@ wait-status:
 
 verify-idempotent:
 	@URN=$$(python3 scripts/find_dataset_urn.py $(DATASET_NAME) $(DATASET_PLATFORM) | head -n 1 | cut -f1) && \
-		RESPONSE=$$(curl -s -X POST -H 'Content-Type: application/json' -d "{\"dataset\": \"$$URN\"}" http://localhost:8081/trigger) && \
-		echo "Idempotency response: $$RESPONSE" && \
-		python3 - "$$RESPONSE" <<'PY'
-import json, sys
-response = json.loads(sys.argv[1])
-rows = response.get("rows_updated")
-if rows not in (0, "0"):
-    raise SystemExit(f"Expected 0 rows updated, got {rows}")
-PY
+	RESPONSE=$$(curl -s -X POST -H 'Content-Type: application/json' -d "{\"dataset\": \"$$URN\"}" http://localhost:8081/trigger) && \
+	echo "Idempotency response: $$RESPONSE" && \
+	python3 - "$$RESPONSE" <<'PY'
+	import json, sys
+	response = json.loads(sys.argv[1])
+	rows = response.get("rows_updated")
+	if rows not in (0, "0"):
+	raise SystemExit(f"Expected 0 rows updated, got {rows}")
+	PY
 
 e2e: build up ingest trigger-ui wait-status verify-idempotent
 

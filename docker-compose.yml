@@ -66,7 +66,7 @@ services:
       retries: 10
 
   mysql-setup:
-    image: acryldata/datahub-mysql-setup:0.13.0
+    image: acryldata/datahub-mysql-setup:v1.2.0.1
     depends_on:
       mysql:
         condition: service_healthy
@@ -91,7 +91,7 @@ services:
       retries: 10
 
   elasticsearch-setup:
-    image: acryldata/datahub-elasticsearch-setup:0.13.0
+    image: acryldata/datahub-elasticsearch-setup:v1.2.0.1
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -100,7 +100,7 @@ services:
       ELASTICSEARCH_PORT: 9200
 
   kafka-setup:
-    image: acryldata/datahub-kafka-setup:0.13.0
+    image: acryldata/datahub-kafka-setup:v1.2.0.1
     depends_on:
       broker:
         condition: service_healthy
@@ -111,7 +111,7 @@ services:
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
 
   datahub-gms:
-    image: acryldata/datahub-gms:0.13.0
+    image: acryldata/datahub-gms:v1.2.0.1
     depends_on:
       mysql-setup:
         condition: service_completed_successfully
@@ -138,7 +138,7 @@ services:
       retries: 10
 
   datahub-frontend:
-    image: acryldata/datahub-frontend-react:0.13.0
+    image: acryldata/datahub-frontend-react:v1.2.0.1
     depends_on:
       datahub-gms:
         condition: service_healthy
@@ -156,7 +156,7 @@ services:
       retries: 10
 
   datahub-mce-consumer:
-    image: acryldata/datahub-mce-consumer:0.13.0
+    image: acryldata/datahub-mce-consumer:v1.2.0.1
     depends_on:
       datahub-gms:
         condition: service_healthy
@@ -168,7 +168,7 @@ services:
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
 
   datahub-mae-consumer:
-    image: acryldata/datahub-mae-consumer:0.13.0
+    image: acryldata/datahub-mae-consumer:v1.2.0.1
     depends_on:
       datahub-gms:
         condition: service_healthy
