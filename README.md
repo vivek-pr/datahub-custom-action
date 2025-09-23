@@ -22,6 +22,7 @@ If you plan to ingest from Databricks, set the Databricks connection variables i
 ```bash
 # Copy defaults and update credentials if needed
 cp .env.example .env
+# When editing MySQL credentials, wrap values in quotes and avoid leading hyphens so YAML parses them correctly
 
 # Build the custom action image and start the stack
 make build
