@@ -120,6 +120,12 @@ When Databricks credentials are missing, the action logs a skip message and retu
 
 ## Troubleshooting
 
+* **Zookeeper stays unhealthy** – set `DOCKER_PLATFORM=linux/amd64` and retry `make up` if you're on an architecture unsupported by the bundled images. You can confirm the health check manually:
+
+  ```bash
+  docker exec -it <zookeeper> sh -lc 'printf ruok | nc -w 2 localhost 2181'
+  # expect: imok
+  ```
 * **Services keep restarting** – check `docker compose logs datahub-gms` and confirm Schema Registry, Kafka, and MySQL are healthy (`docker compose ps`).
 * **find_dataset_urn.py returns nothing** – ensure the dataset has been ingested (`make ingest`) and that `DATAHUB_GMS` / `DATAHUB_TOKEN` are set in your environment when running the script.
 * **poll_status.sh times out** – inspect the action logs (`docker compose logs datahub-actions`) for errors. The run summary stored on the dataset will include any exception message.

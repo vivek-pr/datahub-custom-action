@@ -3,13 +3,25 @@ DATASET_NAME ?= customers
 DATASET_PLATFORM ?= postgres
 TIMEOUT ?= 600
 
-.PHONY: build up ingest trigger-ui trigger-api wait-status verify-idempotent e2e down
+.PHONY: build up ingest trigger-ui trigger-api wait-status verify-idempotent e2e down diag
 
 build:
 	$(COMPOSE) build datahub-actions
 
 up:
 	$(COMPOSE) up -d
+	$(COMPOSE) ps zookeeper
+	@CONTAINER=$$($(COMPOSE) ps -q zookeeper); \
+	if [ -n "$$CONTAINER" ]; then \
+		docker inspect --format '{{.State.Health.Status}}' $$CONTAINER | grep -q healthy || { \
+			$(COMPOSE) logs --no-color zookeeper broker || true; \
+			exit 1; \
+		}; \
+	else \
+		echo "Failed to resolve zookeeper container"; \
+		$(COMPOSE) logs --no-color zookeeper broker || true; \
+		exit 1; \
+	fi
 	$(COMPOSE) wait datahub-gms datahub-actions postgres
 	./scripts/seed_pg.sh
 
@@ -46,3 +58,7 @@ e2e: build up ingest trigger-ui wait-status verify-idempotent
 
 down:
 	$(COMPOSE) down -v
+
+diag:
+	$(COMPOSE) ps
+	$(COMPOSE) logs --tail=200 zookeeper broker
