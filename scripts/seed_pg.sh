@@ -8,7 +8,7 @@ else
   COMPOSE_COMMAND="docker compose"
 fi
 
-${COMPOSE_COMMAND} exec -T postgres psql -U tokenize -d tokenize <<'SQL'
+PGPASSWORD=${PGPASSWORD:-pass} ${COMPOSE_COMMAND} exec -T postgres psql -U tokenize -d tokenize <<'SQL'
 CREATE TABLE IF NOT EXISTS customers (
     id SERIAL PRIMARY KEY,
     email TEXT,

@@ -1,4 +1,12 @@
-COMPOSE ?= docker compose
+ifndef COMPOSE
+COMPOSE := $(shell if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then echo "docker compose"; fi)
+ifeq ($(strip $(COMPOSE)),)
+COMPOSE := $(shell if command -v docker-compose >/dev/null 2>&1; then echo "docker-compose"; fi)
+endif
+ifeq ($(strip $(COMPOSE)),)
+$(error "docker compose or docker-compose not found. Set COMPOSE=/path/to/binary to override")
+endif
+endif
 DATASET_NAME ?= customers
 DATASET_PLATFORM ?= postgres
 TIMEOUT ?= 600
@@ -63,7 +71,7 @@ verify-idempotent:
 	response = json.loads(sys.argv[1])
 	rows = response.get("rows_updated")
 	if rows not in (0, "0"):
-	raise SystemExit(f"Expected 0 rows updated, got {rows}")
+	    raise SystemExit(f"Expected 0 rows updated, got {rows}")
 	PY
 
 e2e: build up ingest trigger-ui wait-status verify-idempotent
