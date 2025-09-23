@@ -20,4 +20,5 @@ for i in $(seq 1 60); do
 done
 
 echo "MySQL not healthy" >&2
+
 exit 1
