@@ -61,29 +61,34 @@ services:
   mysql:
     image: mysql:8.0
     environment:
-      MYSQL_DATABASE: datahub
-      MYSQL_ROOT_PASSWORD: datahub
-      MYSQL_USER: datahub
-      MYSQL_PASSWORD: datahub
+      MYSQL_ROOT_PASSWORD: "rootpass"
+      MYSQL_DATABASE: "datahub"
+      MYSQL_USER: "datahub"
+      MYSQL_PASSWORD: "datahubpass"
     ports:
       - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -prootpass | grep -q 'mysqld is alive'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
 
-  mysql-setup:
-    image: acryldata/datahub-mysql-setup:v1.2.0.1
+  datahub-custom-action-mysql-setup:
+    image: mysql:8.0
     depends_on:
       mysql:
         condition: service_healthy
     environment:
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_USER: datahub
-      MYSQL_PASSWORD: datahub
-      MYSQL_DB: datahub
+      MYSQL_HOST: "mysql"
+      MYSQL_PORT: "3306"
+      MYSQL_DB: "datahub"
+      MYSQL_USER: "root"
+      MYSQL_PASSWORD: "rootpass"
+    entrypoint: ["/bin/sh","-lc","/wait-mysql.sh \"$MYSQL_HOST\" \"$MYSQL_PORT\" && /scripts/run-setup.sh"]
+    volumes:
+      - ./scripts/wait-mysql.sh:/wait-mysql.sh:ro
+      - ./scripts/run-setup.sh:/scripts/run-setup.sh:ro
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
@@ -121,7 +126,7 @@ services:
   datahub-gms:
     image: acryldata/datahub-gms:v1.2.0.1
     depends_on:
-      mysql-setup:
+      datahub-custom-action-mysql-setup:
         condition: service_completed_successfully
       kafka-setup:
         condition: service_completed_successfully
@@ -136,7 +141,7 @@ services:
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_USERNAME: datahub
-      MYSQL_PASSWORD: datahub
+      MYSQL_PASSWORD: "datahubpass"
     ports:
       - "8080:8080"
     healthcheck:
