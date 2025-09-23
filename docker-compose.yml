@@ -297,6 +297,10 @@ services:
       WAIT_FOR_URIS: >-
         http://datahub-gms:8080/health http://schema-registry:8081/subjects tcp://broker:29092 tcp://postgres:5432
       DATAHUB_SECRET: "7e3dc188888893837378986378937e3dc1"
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: datahub
+      MYSQL_PASSWORD: "datahubpass"
     depends_on:
       datahub-gms:
         condition: service_healthy
@@ -306,6 +310,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      kafka-setup:                      # 👈 add
+        condition: service_completed_successfully
     ports:
       - "8091:8091"
     healthcheck:

@@ -14,7 +14,7 @@ source:
     profiling:
       enabled: false
 transformers:
-  - type: add_dataset_tags
+  - type: simple_add_dataset_tags
     config:
       tag_urns:
         - "urn:li:tag:tokenize/run"
