@@ -62,6 +62,7 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: "rootpass"
+      MYSQL_ROOT_HOST: "%"
       MYSQL_DATABASE: "datahub"
       MYSQL_USER: "datahub"
       MYSQL_PASSWORD: "datahubpass"
