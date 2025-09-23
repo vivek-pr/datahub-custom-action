@@ -3,20 +3,25 @@ version: "3.9"
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.3
+    platform: ${DOCKER_PLATFORM:-linux/arm64}
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=ruok,srvr,stat,mntr,conf"
     healthcheck:
-      test: ["CMD", "bash", "-c", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      test: ["CMD-SHELL", "printf ruok | nc -w 2 localhost 2181 | grep -q imok"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 30
+      start_period: 10s
 
   broker:
     image: confluentinc/cp-kafka:7.5.3
+    platform: ${DOCKER_PLATFORM:-linux/arm64}
     depends_on:
       zookeeper:
         condition: service_healthy
+    entrypoint: ["/bin/sh","-lc","/wait-zk.sh zookeeper && /etc/confluent/docker/run"]
     ports:
       - "9092:9092"
     environment:
@@ -25,6 +30,7 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
@@ -33,6 +39,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    volumes:
+      - ./scripts/wait-zk.sh:/wait-zk.sh:ro
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.5.3
