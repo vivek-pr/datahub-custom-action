@@ -1,4 +1,4 @@
-version: "3.9"
+
 
 services:
   zookeeper:
@@ -141,6 +141,7 @@ services:
       elasticsearch-setup:
         condition: service_completed_successfully
     environment:
+      ENTITY_REGISTRY_CONFIG_PATH: /datahub/datahub-gms/resources/entity-registry.yml
       DATAHUB_GMS_PORT: 8080
       KAFKA_BOOTSTRAP_SERVER: broker:29092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
@@ -151,8 +152,14 @@ services:
       MYSQL_USERNAME: datahub
       MYSQL_PASSWORD: "datahubpass"
       EBEAN_DATASOURCE_HOST: mysql:3306
+      EBEAN_DATASOURCE_USERNAME: datahub
+      EBEAN_DATASOURCE_PASSWORD: "datahubpass"
+      EBEAN_DATASOURCE_URL: 'jdbc:mysql://mysql:3306/datahub?verifyServerCertificate=false&useSSL=true&useUnicode=yes&characterEncoding=UTF-8&enabledTLSProtocols=TLSv1.2'
+      WAIT_FOR_URIS: >-
+        http://elasticsearch:9200/_cluster/health http://schema-registry:8081/subjects tcp://broker:29092 tcp://mysql:3306
       GRAPH_SERVICE_IMPL: elasticsearch
-      WAIT_FOR_URIS: "http://elasticsearch:9200/_cluster/health http://schema-registry:8081/subjects tcp://broker:29092 tcp://mysql:3306"
+      DATAHUB_SECRET: "7e3dc188888893837378986378937e3dc1" 
+      # WAIT_FOR_URIS: "http://elasticsearch:9200/_cluster/health http://schema-registry:8081/subjects tcp://broker:29092 tcp://mysql:3306"
     ports:
       - "8080:8080"
     healthcheck:
@@ -180,6 +187,7 @@ services:
       DATAHUB_GMS_PORT: 8080
       DATAHUB_GMS_PROTOCOL: http
       DATAHUB_APP_VERSION: poc
+      DATAHUB_SECRET: "7e3dc188888893837378986378937e3dc1"
     ports:
       - "9002:9002"
     healthcheck:
@@ -200,6 +208,8 @@ services:
       DATAHUB_GMS_PROTOCOL: http
       KAFKA_BOOTSTRAP_SERVER: broker:29092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      DATAHUB_SECRET: "7e3dc188888893837378986378937e3dc1"
+      ENTITY_REGISTRY_CONFIG_PATH: /datahub/datahub-mce-consumer/resources/entity-registry.yml
 
   datahub-mae-consumer:
     image: acryldata/datahub-mae-consumer:v1.2.0.1
@@ -213,6 +223,17 @@ services:
       DATAHUB_GMS_PROTOCOL: http
       KAFKA_BOOTSTRAP_SERVER: broker:29092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      DATAHUB_SECRET: "7e3dc188888893837378986378937e3dc1"
+      ENTITY_REGISTRY_CONFIG_PATH: /datahub/datahub-mae-consumer/resources/entity-registry.yml
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USERNAME: datahub
+      MYSQL_PASSWORD: "datahubpass"
+      EBEAN_DATASOURCE_HOST: mysql
+      EBEAN_DATASOURCE_PORT: 3306
+      EBEAN_DATASOURCE_USERNAME: datahub
+      EBEAN_DATASOURCE_PASSWORD: "datahubpass"
+      EBEAN_DATASOURCE_URL: 'jdbc:mysql://mysql:3306/datahub?verifyServerCertificate=false&useSSL=true&useUnicode=yes&characterEncoding=UTF-8&enabledTLSProtocols=TLSv1.2'
 
   postgres:
     image: postgres:14
@@ -239,7 +260,9 @@ services:
       KAFKA_BOOTSTRAP_SERVER: broker:29092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       PG_CONN_STR: postgresql://tokenize:pass@postgres:5432/tokenize
-      WAIT_FOR_URIS: "http://datahub-gms:8080/health http://schema-registry:8081/subjects tcp://broker:29092 tcp://postgres:5432"
+      WAIT_FOR_URIS: >-
+        http://datahub-gms:8080/health http://schema-registry:8081/subjects tcp://broker:29092 tcp://postgres:5432
+      DATAHUB_SECRET: "7e3dc188888893837378986378937e3dc1"
     depends_on:
       datahub-gms:
         condition: service_healthy
@@ -250,9 +273,9 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "8081:8081"
+      - "8091:8091"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/healthz"]
+      test: ["CMD", "curl", "-f", "http://localhost:8091/healthz"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -261,4 +284,4 @@ services:
       - -lc
       - |
         /app/scripts/wait-for-uris.sh
-        exec uvicorn action.app:app --host 0.0.0.0 --port 8081
+        exec uvicorn action.app:app --host 0.0.0.0 --port 8091
