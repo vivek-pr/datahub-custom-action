@@ -1,63 +1,61 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 set -euo pipefail
 
-IFS=$' \t\n'
-URIS=("$@")
-if [ ${#URIS[@]} -eq 0 ] && [ -n "${WAIT_FOR_URIS:-}" ]; then
-  # shellcheck disable=SC2206
-  URIS=(${WAIT_FOR_URIS})
-fi
+timeout_secs="${WAIT_TIMEOUT_SECONDS:-240}"
+start_ts="$(date +%s)"
 
-if [ ${#URIS[@]} -eq 0 ]; then
-  echo "wait-for-uris: no URIs provided" >&2
-  exit 0
-fi
+# Split on whitespace
+IFS=' ' read -r -a URIS <<< "${WAIT_FOR_URIS:-}"
 
-check_http() {
-  local url=$1
-  local attempt=0
-  while true; do
-    if curl -fsS "$url" >/dev/null 2>&1; then
-      return 0
-    fi
-    attempt=$((attempt + 1))
-    echo "wait-for-uris: waiting for $url (attempt $attempt)" >&2
-    sleep 2
-  done
-}
-
-check_tcp() {
-  local target=$1
-  local host=${target%:*}
-  local port=${target##*:}
-  if [[ -z $host || -z $port || $host == $port ]]; then
-    echo "wait-for-uris: invalid tcp target '$target'" >&2
-    return 1
-  fi
-  local attempt=0
-  while true; do
-    if (echo > /dev/tcp/$host/$port) >/dev/null 2>&1; then
-      return 0
-    fi
-    attempt=$((attempt + 1))
-    echo "wait-for-uris: waiting for tcp://$target (attempt $attempt)" >&2
-    sleep 2
-  done
-}
-
-for raw in "${URIS[@]}"; do
-  uri=$(echo "$raw" | xargs)
-  [ -z "$uri" ] && continue
+is_up() {
+  uri="$1"
   case "$uri" in
     http://*|https://*)
-      check_http "$uri"
+      # Require at least host part
+      if ! echo "$uri" | grep -Eq '^https?://[^/]+(:[0-9]+)?(/.*)?$'; then
+        echo "⚠️ Skipping invalid http(s) URI: '$uri'"
+        return 0
+      fi
+      curl -fsS --max-time 5 "$uri" >/dev/null 2>&1
       ;;
     tcp://*)
-      check_tcp "${uri#tcp://}"
+      hostport="${uri#tcp://}"
+      host="${hostport%:*}"
+      port="${hostport##*:}"
+      if [ -z "$host" ] || [ -z "$port" ]; then
+        echo "⚠️ Skipping invalid tcp URI: '$uri'"
+        return 0
+      fi
+      # Use bash /dev/tcp if available, else nc
+      (echo > /dev/tcp/"$host"/"$port") >/dev/null 2>&1 2>/dev/null \
+        || nc -z -w 3 "$host" "$port" >/dev/null 2>&1
       ;;
     *)
-      echo "wait-for-uris: unsupported URI '$uri'" >&2
-      exit 1
+      echo "⚠️ Unknown/unsupported URI scheme: '$uri' (skipping)"
+      return 0
       ;;
   esac
+}
+
+filtered=""
+for uri in "${URIS[@]}"; do
+  [ -n "$uri" ] || continue
+  filtered="$filtered $uri"
 done
+
+echo "Waiting on dependencies:${filtered:- (none)}"
+
+for uri in $filtered; do
+  until is_up "$uri"; do
+    now="$(date +%s)"
+    elapsed=$(( now - start_ts ))
+    if [ "$elapsed" -ge "$timeout_secs" ]; then
+      echo "❌ Timeout after ${timeout_secs}s waiting on dependencies: [$filtered]" >&2
+      exit 1
+    fi
+    sleep 2
+  done
+  echo "✅ $uri is up"
+done
+
+echo "🎉 All dependencies are up."

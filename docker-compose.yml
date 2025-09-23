@@ -151,6 +151,7 @@ services:
       MYSQL_USERNAME: datahub
       MYSQL_PASSWORD: "datahubpass"
       EBEAN_DATASOURCE_HOST: mysql:3306
+      GRAPH_SERVICE_IMPL: elasticsearch
       WAIT_FOR_URIS: "http://elasticsearch:9200/_cluster/health http://schema-registry:8081/subjects tcp://broker:29092 tcp://mysql:3306"
     ports:
       - "8080:8080"
