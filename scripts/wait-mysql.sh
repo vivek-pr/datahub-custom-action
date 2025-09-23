@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 set -e
 
-HOST="${1:?host}"
-PORT="${2:?port}"
+HOST="${1:-host}"
+PORT="${2:-port}"
 USER="${MYSQL_USER:-root}"
 PASS="${MYSQL_PASSWORD:-}"
 
