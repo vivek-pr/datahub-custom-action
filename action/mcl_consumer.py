@@ -11,6 +11,7 @@ from confluent_kafka import KafkaException
 from confluent_kafka.deserializing_consumer import DeserializingConsumer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
+from confluent_kafka.schema_registry.error import SchemaRegistryError
 from confluent_kafka.serialization import StringDeserializer
 
 from .run_manager import RunManager
@@ -47,6 +48,10 @@ def _extract_field_columns(aspect: dict) -> List[str]:
             if field_path:
                 columns.append(field_path.split(".")[-1])
     return columns
+
+
+class _SchemaUnavailable(RuntimeError):
+    """Raised when the MetadataChangeLog schema has not been registered yet."""
 
 
 class MetadataChangeLogConsumer(threading.Thread):
@@ -96,6 +101,13 @@ class MetadataChangeLogConsumer(threading.Thread):
         try:
             self._consumer = self._build_consumer()
             return True
+        except _SchemaUnavailable:
+            LOGGER.warning(
+                "MetadataChangeLog schema not yet available in Schema Registry; "
+                "will retry"
+            )
+            self._consumer = None
+            return False
         except Exception as exc:  # pragma: no cover - initialization failures
             LOGGER.warning("Failed to initialize Kafka consumer: %s", exc)
             self._consumer = None
@@ -108,7 +120,12 @@ class MetadataChangeLogConsumer(threading.Thread):
         offset_reset = os.getenv("KAFKA_AUTO_OFFSET_RESET", "latest")
 
         schema_registry = SchemaRegistryClient({"url": schema_registry_url})
-        latest_schema = schema_registry.get_latest_version(f"{TOPIC}-value")
+        try:
+            latest_schema = schema_registry.get_latest_version(f"{TOPIC}-value")
+        except SchemaRegistryError as error:
+            if error.error_code == 40401:
+                raise _SchemaUnavailable() from error
+            raise
         value_deserializer = AvroDeserializer(
             schema_registry_client=schema_registry,
             schema_str=latest_schema.schema.schema_str,
