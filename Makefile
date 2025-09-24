@@ -10,6 +10,7 @@ endif
 DATASET_NAME ?= customers
 DATASET_PLATFORM ?= postgres
 TIMEOUT ?= 600
+ACTION_PORT ?= 8091
 
 .PHONY: build up ingest trigger-ui trigger-api wait-status verify-idempotent e2e down diag
 
@@ -56,16 +57,17 @@ trigger-ui:
 trigger-api:
 	@URN=$$(python3 scripts/find_dataset_urn.py $(DATASET_NAME) $(DATASET_PLATFORM) | head -n 1 | cut -f1) && \
 		echo "Triggering via API for $$URN" && \
-		curl -s -X POST -H 'Content-Type: application/json' -d "{\"dataset\": \"$$URN\"}" http://localhost:8081/trigger | tee /tmp/tokenize-api.json
+		curl -s -X POST -H 'Content-Type: application/json' -d "{\"dataset\": \"$$URN\"}" http://localhost:$(ACTION_PORT)/trigger | tee /tmp/tokenize-api.json
 
 wait-status:
 	@URN=$$(python3 scripts/find_dataset_urn.py $(DATASET_NAME) $(DATASET_PLATFORM) | head -n 1 | cut -f1) && \
 		./scripts/poll_status.sh $$URN $(TIMEOUT)
 
+
 verify-idempotent:
 	@URN=$$(python3 scripts/find_dataset_urn.py $(DATASET_NAME) $(DATASET_PLATFORM) | head -n 1 | cut -f1) && \
-	RESPONSE=$$(curl -s -X POST -H 'Content-Type: application/json' -d "{\"dataset\": \"$$URN\"}" http://localhost:8081/trigger) && \
-	echo "Idempotency response: $$RESPONSE" && \
+	RESPONSE=$$(curl -s -X POST -H 'Content-Type: application/json' -d "{\"dataset\": \"$$URN\"}" http://localhost:$(ACTION_PORT)/trigger) && \
+		echo "Idempotency response: $$RESPONSE" && \
 	python3 - "$$RESPONSE" <<'PY'
 	import json, sys
 	response = json.loads(sys.argv[1])
