@@ -159,11 +159,12 @@ services:
       DATAHUB_UPGRADE_CONFIRM: "true"
       DATAHUB_UPGRADE_YES: "true"
       DATAHUB_UPGRADE_ALLOW_YES: "true"
-      ENTITY_REGISTRY_CONFIG_PATH: /datahub/datahub-gms/resources/entity-registry.yml
+      ENTITY_REGISTRY_CONFIG_PATH: /datahub/datahub-upgrade/resources/entity-registry.yml
       WAIT_FOR_URIS: >-
         tcp://mysql:3306 http://schema-registry:8081/subjects tcp://broker:29092 http://elasticsearch:9200/_cluster/health
     volumes:
       - ./scripts/wait-for-uris.sh:/wait-for-uris.sh:ro
+      - ./docker/resources/entity-registry.yml:/datahub/datahub-upgrade/resources/entity_registry.yml:ro
       - ./docker/resources/entity-registry.yml:/datahub/datahub-upgrade/resources/entity-registry.yml:ro
     command:
       - -u
