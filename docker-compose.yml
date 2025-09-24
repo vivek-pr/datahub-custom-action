@@ -125,6 +125,19 @@ services:
       ELASTICSEARCH_HOST: elasticsearch
       ELASTICSEARCH_PORT: 9200
 
+  policy-index-setup:
+    image: curlimages/curl:8.10.1
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c", "/scripts/setup-policy-index.sh"]
+    environment:
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+      POLICY_INDEX_NAME: datahubpolicyindex_v2
+    volumes:
+      - ./scripts/setup_policy_index.sh:/scripts/setup-policy-index.sh:ro
+
   kafka-setup:
     image: acryldata/datahub-kafka-setup:v1.2.0.1
     platform: ${DOCKER_PLATFORM:-linux/amd64}
@@ -146,6 +159,8 @@ services:
       kafka-setup:
         condition: service_completed_successfully
       elasticsearch-setup:
+        condition: service_completed_successfully
+      policy-index-setup:
         condition: service_completed_successfully
     environment:
       ENTITY_REGISTRY_CONFIG_PATH: /datahub/datahub-gms/resources/entity-registry.yml

@@ -14,10 +14,9 @@ source:
     profiling:
       enabled: false
 transformers:
-  - type: simple_add_dataset_tags
+  - type: add_dataset_tags
     config:
-      tag_urns:
-        - "urn:li:tag:tokenize/run"
+      get_tags_to_add: ingestion.tag_helpers.tokenize_run_tags
 sink:
   type: datahub-rest
   config:
