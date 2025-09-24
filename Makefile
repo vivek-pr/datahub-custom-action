@@ -17,33 +17,33 @@ build:
 	$(COMPOSE) build datahub-actions
 
 up:
-	$(COMPOSE) up -d
-	$(COMPOSE) ps mysql
-	@CONTAINER=$$($(COMPOSE) ps -q mysql); \
-	if [ -n "$$CONTAINER" ]; then \
-			docker inspect --format '{{.State.Health.Status}}' $$CONTAINER | grep -q healthy || { \
-					$(COMPOSE) logs --no-color mysql datahub-custom-action-mysql-setup || true; \
-					exit 1; \
-			}; \
-	else \
-			echo "Failed to resolve mysql container"; \
-			$(COMPOSE) logs --no-color mysql datahub-custom-action-mysql-setup || true; \
-			exit 1; \
-	fi
-	$(COMPOSE) ps zookeeper
-	@CONTAINER=$$($(COMPOSE) ps -q zookeeper); \
-	if [ -n "$$CONTAINER" ]; then \
-	docker inspect --format '{{.State.Health.Status}}' $$CONTAINER | grep -q healthy || { \
-		$(COMPOSE) logs --no-color zookeeper broker || true; \
-		exit 1; \
-	}; \
-	else \
-	echo "Failed to resolve zookeeper container"; \
-	$(COMPOSE) logs --no-color zookeeper broker || true; \
-	exit 1; \
-	fi
-	$(COMPOSE) wait datahub-gms datahub-actions postgres
-	./scripts/seed_pg.sh
+        $(COMPOSE) up -d
+        $(COMPOSE) ps mysql
+        @CONTAINER=$$($(COMPOSE) ps -q mysql); \
+        if [ -n "$$CONTAINER" ]; then \
+                        docker inspect --format '{{.State.Health.Status}}' $$CONTAINER | grep -q healthy || { \
+                                        $(COMPOSE) logs --no-color mysql datahub-custom-action-mysql-setup || true; \
+                                        exit 1; \
+                        }; \
+        else \
+                        echo "Failed to resolve mysql container"; \
+                        $(COMPOSE) logs --no-color mysql datahub-custom-action-mysql-setup || true; \
+                        exit 1; \
+        fi
+        $(COMPOSE) ps zookeeper
+        @CONTAINER=$$($(COMPOSE) ps -q zookeeper); \
+        if [ -n "$$CONTAINER" ]; then \
+        docker inspect --format '{{.State.Health.Status}}' $$CONTAINER | grep -q healthy || { \
+                $(COMPOSE) logs --no-color zookeeper broker || true; \
+                exit 1; \
+        }; \
+        else \
+        echo "Failed to resolve zookeeper container"; \
+        $(COMPOSE) logs --no-color zookeeper broker || true; \
+        exit 1; \
+        fi
+        WAIT_TIMEOUT=$(TIMEOUT) ./scripts/wait-for-health.sh "$(COMPOSE)" datahub-gms datahub-actions postgres
+        ./scripts/seed_pg.sh
 
 ingest:
 	$(COMPOSE) exec -T datahub-actions datahub ingest -c /app/ingestion/postgres.yml
