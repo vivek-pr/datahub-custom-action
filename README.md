@@ -85,7 +85,7 @@ The `make e2e` target chains `build → up → ingest → trigger-ui → wait-st
 Send a POST request to the FastAPI endpoint running inside the action container:
 
 ```bash
-curl -X POST http://localhost:8081/trigger \
+curl -X POST http://localhost:8091/trigger \
   -H 'Content-Type: application/json' \
   -d '{
         "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,tokenize.public.customers,PROD)",

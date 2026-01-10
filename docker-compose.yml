@@ -383,7 +383,7 @@ services:
       kafka-setup:                      # 👈 add
         condition: service_completed_successfully
     ports:
-      - "8091:8091"
+      - "8091:${ACTION_PORT:-8091}"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8091/healthz"]
       interval: 10s
@@ -394,4 +394,4 @@ services:
       - -lc
       - |
         /app/scripts/wait-for-uris.sh
-        exec uvicorn action.app:app --host 0.0.0.0 --port 8091
+        exec uvicorn action.app:app --host 0.0.0.0 --port "${ACTION_PORT:-8091}"
