@@ -1,0 +1,40 @@
+name: E2E Tokenization
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare environment file
+        run: cp .env.example .env
+
+      - name: Build custom action image
+        run: make build
+
+      - name: Start services
+        run: make up
+
+      - name: Ingest sample dataset
+        run: make ingest
+
+      - name: Trigger tokenization via UI workflow
+        run: |
+          make trigger-ui
+          make wait-status
+          make verify-idempotent
+
+      - name: Capture docker logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down stack
+        if: always()
+        run: make down
